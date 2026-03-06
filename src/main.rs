@@ -9,7 +9,19 @@ async fn main() {
     let passed = "==>".blue();
     let failed = "! >".red();
     let mut args = std::env::args();
-    let filename = args.nth(1).expect("Please provide an MEIF (Minimally Efficient Image Format) file as an argument.");
+    let _program = args.next();
+    let filename = args.next().expect("Please provide an MEIF (Minimally Efficient Image Format) file as an argument.");
+    let mut export_path: Option<String> = None;
+    while let Some(arg) = args.next() {
+        if arg == "--export" || arg == "-o" {
+            if let Some(path) = args.next() {
+                export_path = Some(path);
+            } else {
+                eprintln!("Missing path after {}", arg);
+                std::process::exit(1);
+            }
+        }
+    }
     let mut file = std::fs::File::open(&filename).expect("Failed to open the file. Does it exist?");
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).expect("Failed to read the file.");
@@ -20,6 +32,23 @@ async fn main() {
             Ok(image) => {
                 println!("{} Parsed MEIF file successfully.", passed);
                 println!("{} {:?}", passed, image);
+                if let Some(path) = export_path {
+                    let rgb = image.to_rgb_bytes();
+                    let out_path = std::path::Path::new(&path);
+                    if let Err(e) = image::save_buffer_with_format(
+                        out_path,
+                        &rgb,
+                        image.width,
+                        image.height,
+                        image::ColorType::Rgb8,
+                        image::ImageFormat::Jpeg,
+                    ) {
+                        eprintln!("{} Failed to export JPEG: {}", failed, e);
+                        std::process::exit(1);
+                    }
+                    println!("{} Exported JPEG to {}", passed, out_path.display().to_string().green());
+                    return;
+                }
                 for index in &image.indexes {
                     print!("{}", "██".truecolor(
                         (index.r * 255.0).round() as u8,
