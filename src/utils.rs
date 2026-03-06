@@ -179,6 +179,18 @@ impl MEIFImage {
 
         bytes
     }
+
+    pub fn to_rgb_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity((self.width * self.height * 3) as usize);
+        for i in 0..self.data.len() {
+            let idx = self.data[i] as usize;
+            let color = &self.indexes[idx];
+            bytes.push((color.r * 255.0).round() as u8);
+            bytes.push((color.g * 255.0).round() as u8);
+            bytes.push((color.b * 255.0).round() as u8);
+        }
+        bytes
+    }
 }
 
 impl std::fmt::Debug for MEIFImage {
